@@ -1,0 +1,22 @@
+# python
+__pycache__/
+*.pyc
+
+# virtualenv
+.venv/
+
+# data
+data/
+*.parquet
+
+# qdrant
+qdrant_storage/
+
+# mac
+.DS_Store
+
+# notebooks
+.ipynb_checkpoints/
+
+# env
+.env
