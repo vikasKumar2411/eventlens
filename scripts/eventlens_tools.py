@@ -137,6 +137,70 @@ def normalize_text(s: str) -> str:
 def contains_any(text: str, phrases: List[str]) -> bool:
     return any(p in text for p in phrases)
 
+def extract_query_focus_terms(query: str) -> List[str]:
+    """
+    Extract simple high-signal focus terms from the user query.
+    This is intentionally lightweight for now.
+    """
+    q = normalize_text(query)
+
+    stop_terms = {
+        "which", "companies", "company", "announced", "acquisition", "acquisitions",
+        "acquire", "acquired", "acquiring", "merger", "merge", "merged",
+        "business", "combination", "reported", "discussed", "mentioned",
+        "filings", "filing", "stock", "repurchases", "repurchase", "did",
+        "does", "do", "what", "who", "when", "where", "why", "how", "and",
+        "or", "the", "a", "an", "of", "in", "for", "to"
+    }
+
+    raw_terms = re.findall(r"[a-zA-Z][a-zA-Z0-9\.\-&]", query)
+    cleaned = []
+    for term in raw_terms:
+        t = normalize_text(term)
+        if len(t) < 4:
+            continue
+        if t in stop_terms:
+            continue
+        cleaned.append(t)
+
+    # preserve order, dedupe
+    seen = set()
+    out = []
+    for t in cleaned:
+        if t not in seen:
+            seen.add(t)
+            out.append(t)
+    return out
+
+
+def question_target_bonus(query: str, payload: Dict[str, Any]) -> float:
+    """
+    Boost chunks that mention specific entities/targets from the question.
+    Example: if the question mentions ElectraMeccanica, chunks mentioning it
+    in title/text should get promoted.
+    """
+    focus_terms = extract_query_focus_terms(query)
+    if not focus_terms:
+        return 0.0
+
+    title = normalize_text(str(payload.get("title") or ""))
+    text = normalize_text(str(payload.get("text") or ""))
+    company_name = normalize_text(str(payload.get("company_name") or ""))
+    symbol = normalize_text(str(payload.get("symbol") or ""))
+
+    bonus = 0.0
+
+    for term in focus_terms:
+        if term in title:
+            bonus = 0.18
+        if term in text:
+            bonus = 0.08
+        if term in company_name:
+            bonus = 0.06
+        if term == symbol:
+            bonus = 0.05
+
+    return bonus
 
 def acquisition_keyword_bonus(query: str, payload: Dict[str, Any]) -> float:
     q = normalize_text(query)
@@ -339,11 +403,13 @@ def rerank_hits(query: str, hits: List[qm.ScoredPoint]) -> List[qm.ScoredPoint]:
         payload: Dict[str, Any] = h.payload or {}
         base = float(h.score or 0.0)
         bonus = acquisition_keyword_bonus(query, payload)
+        target_bonus = question_target_bonus(query, payload)
         quality = chunk_evidence_quality_bonus(payload)
-        final_score = base + bonus + quality
+        final_score = base + bonus + target_bonus + quality
 
         payload["_base_score"] = round(base, 6)
         payload["_bonus_score"] = round(bonus, 6)
+        payload["_target_bonus_score"] = round(target_bonus, 6)
         payload["_quality_score"] = round(quality, 6)
         payload["_final_score"] = round(final_score, 6)
         h.payload = payload
