@@ -20,3 +20,6 @@ qdrant_storage/
 
 # env
 .env
+
+# run outputs
+runs/*.json
