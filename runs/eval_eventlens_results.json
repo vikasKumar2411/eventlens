@@ -1,0 +1,132 @@
+{
+  "summary": {
+    "total_questions": 3,
+    "passed": 2,
+    "pass_rate": 0.667,
+    "avg_latency_sec": 6.499,
+    "citation_rate": 0.667
+  },
+  "results": [
+    {
+      "question": "Which companies announced acquisitions?",
+      "task_type": "acquisition_search",
+      "plan": [
+        "search_sec_filings",
+        "extract_event_candidates",
+        "answer_from_evidence"
+      ],
+      "latency_sec": 9.137,
+      "retrieval_symbols": [
+        "XOS",
+        "PATK",
+        "EXE",
+        "SUP",
+        "BTTC"
+      ],
+      "retrieval_hit_count": 2,
+      "extraction_score": {
+        "matched_symbols": [
+          "XOS",
+          "PATK"
+        ],
+        "matched_companies": [
+          "Xos",
+          "Patrick Industries"
+        ],
+        "candidate_count": 4
+      },
+      "answer_score": {
+        "matched_symbols": [
+          "XOS",
+          "PATK"
+        ],
+        "matched_companies": [
+          "Xos",
+          "Patrick Industries"
+        ],
+        "matched_any_count": 4,
+        "has_citation": true
+      },
+      "passed": true,
+      "final_answer": "Answer:\n- Xos, Inc. (XOS): Announced acquisition of ElectraMeccanica [Source 1]\n- PATRICK INDUSTRIES INC (PATK): Announced acquisition of Sportech for $315 million [Source 2]\n- Bitech Technologies Corp (BTTC): Announced acquisition of Bridgelink Development, creating a 5.8 GW renewable energy portfolio [Source 5]"
+    },
+    {
+      "question": "Which companies acquired Sportech?",
+      "task_type": "acquisition_search",
+      "plan": [
+        "search_sec_filings",
+        "extract_event_candidates",
+        "answer_from_evidence"
+      ],
+      "latency_sec": 4.44,
+      "retrieval_symbols": [
+        "EXE",
+        "XOS",
+        "PATK",
+        "MAGE",
+        "SUP"
+      ],
+      "retrieval_hit_count": 1,
+      "extraction_score": {
+        "matched_symbols": [
+          "PATK"
+        ],
+        "matched_companies": [
+          "Patrick Industries"
+        ],
+        "candidate_count": 4
+      },
+      "answer_score": {
+        "matched_symbols": [
+          "PATK"
+        ],
+        "matched_companies": [
+          "Patrick Industries"
+        ],
+        "matched_any_count": 2,
+        "has_citation": true
+      },
+      "passed": true,
+      "final_answer": "Answer:\n- PATK: Patrick Industries to acquire Sportech [Source 3]"
+    },
+    {
+      "question": "Which companies acquired ElectraMeccanica?",
+      "task_type": "acquisition_search",
+      "plan": [
+        "search_sec_filings",
+        "extract_event_candidates",
+        "answer_from_evidence"
+      ],
+      "latency_sec": 5.92,
+      "retrieval_symbols": [
+        "EXE",
+        "XOS",
+        "PATK",
+        "MAGE",
+        "SUP"
+      ],
+      "retrieval_hit_count": 1,
+      "extraction_score": {
+        "matched_symbols": [
+          "XOS"
+        ],
+        "matched_companies": [
+          "Xos"
+        ],
+        "candidate_count": 4
+      },
+      "answer_score": {
+        "matched_symbols": [
+          "XOS"
+        ],
+        "matched_companies": [
+          "Xos"
+        ],
+        "matched_any_count": 2,
+        "has_citation": false
+      },
+      "passed": false,
+      "final_answer": "Answer:\n- Xos, Inc.: Acquired ElectraMeccanica in an all-stock deal [Source Y]\n\nSources:\n- Source Y, symbol: XOS, accession: 0001213900-24-002872, release_dt_utc: 2024-01-11 17:10:36+00:00"
+    }
+  ]
+}
