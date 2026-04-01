@@ -1,21 +1,54 @@
 {
   "summary": {
-    "total_questions": 3,
-    "passed": 2,
-    "pass_rate": 0.667,
-    "avg_latency_sec": 6.499,
-    "citation_rate": 0.667
+    "total_questions": 12,
+    "passed": 7,
+    "pass_rate": 0.583,
+    "avg_latency_sec": 5.308,
+    "citation_rate": 0.833,
+    "final_answer_rate": 0.667,
+    "needs_review_rate": 0.333,
+    "by_category": {
+      "broad_acquisition": {
+        "total": 1,
+        "passed": 1
+      },
+      "broad_transaction": {
+        "total": 2,
+        "passed": 1
+      },
+      "target_specific": {
+        "total": 4,
+        "passed": 2
+      },
+      "merger_variant": {
+        "total": 1,
+        "passed": 1
+      },
+      "deal_variant": {
+        "total": 1,
+        "passed": 0
+      },
+      "false_positive_stress": {
+        "total": 2,
+        "passed": 1
+      },
+      "hard_negative": {
+        "total": 1,
+        "passed": 1
+      }
+    }
   },
   "results": [
     {
       "question": "Which companies announced acquisitions?",
+      "category": "broad_acquisition",
       "task_type": "acquisition_search",
       "plan": [
         "search_sec_filings",
         "extract_event_candidates",
         "answer_from_evidence"
       ],
-      "latency_sec": 9.137,
+      "latency_sec": 8.754,
       "retrieval_symbols": [
         "XOS",
         "PATK",
@@ -33,6 +66,7 @@
           "Xos",
           "Patrick Industries"
         ],
+        "matched_entity_count": 3,
         "candidate_count": 4
       },
       "answer_score": {
@@ -41,24 +75,119 @@
           "PATK"
         ],
         "matched_companies": [
-          "Xos",
-          "Patrick Industries"
+          "Xos"
         ],
-        "matched_any_count": 4,
+        "matched_entity_count": 2,
         "has_citation": true
       },
+      "confidence": {
+        "confidence_score": 1.0,
+        "status": "final_answer",
+        "reason": "sufficient_evidence"
+      },
       "passed": true,
-      "final_answer": "Answer:\n- Xos, Inc. (XOS): Announced acquisition of ElectraMeccanica [Source 1]\n- PATRICK INDUSTRIES INC (PATK): Announced acquisition of Sportech for $315 million [Source 2]\n- Bitech Technologies Corp (BTTC): Announced acquisition of Bridgelink Development, creating a 5.8 GW renewable energy portfolio [Source 5]"
+      "final_answer": "Answer:\n- XOS: Announced acquisition through an all-stock deal [Source 1]\n- PATK: Announced acquisition of Sportech for $315 million [Source 2]\n- BTTC: Announced acquisition of Bridgelink Development [Source 5]"
     },
     {
-      "question": "Which companies acquired Sportech?",
+      "question": "Which companies announced merger deals?",
+      "category": "broad_transaction",
       "task_type": "acquisition_search",
       "plan": [
         "search_sec_filings",
         "extract_event_candidates",
         "answer_from_evidence"
       ],
-      "latency_sec": 4.44,
+      "latency_sec": 4.803,
+      "retrieval_symbols": [
+        "EXE",
+        "XOS",
+        "TCPC",
+        "SUP",
+        "BTTC"
+      ],
+      "retrieval_hit_count": 2,
+      "extraction_score": {
+        "matched_symbols": [
+          "XOS",
+          "EXE"
+        ],
+        "matched_companies": [
+          "Xos",
+          "Chesapeake Energy"
+        ],
+        "matched_entity_count": 3,
+        "candidate_count": 4
+      },
+      "answer_score": {
+        "matched_symbols": [
+          "XOS"
+        ],
+        "matched_companies": [
+          "Xos",
+          "Chesapeake Energy"
+        ],
+        "matched_entity_count": 2,
+        "has_citation": true
+      },
+      "confidence": {
+        "confidence_score": 1.0,
+        "status": "final_answer",
+        "reason": "sufficient_evidence"
+      },
+      "passed": true,
+      "final_answer": "Answer:\n- Southwestern Energy: Announced merger with Chesapeake Energy [Source 1]\n- ElectraMeccanica: Acquired by Xos, Inc. in an all-stock deal [Source 2]"
+    },
+    {
+      "question": "Which filings discussed definitive transaction agreements?",
+      "category": "broad_transaction",
+      "task_type": "general_sec_search",
+      "plan": [
+        "search_sec_filings",
+        "answer_from_evidence"
+      ],
+      "latency_sec": 4.959,
+      "retrieval_symbols": [
+        "XOS",
+        "BTTC",
+        "PROP",
+        "EXE",
+        "FFNW"
+      ],
+      "retrieval_hit_count": 1,
+      "extraction_score": {
+        "matched_symbols": [],
+        "matched_companies": [],
+        "matched_entity_count": 0,
+        "candidate_count": 0
+      },
+      "answer_score": {
+        "matched_symbols": [
+          "XOS"
+        ],
+        "matched_companies": [
+          "Xos"
+        ],
+        "matched_entity_count": 1,
+        "has_citation": true
+      },
+      "confidence": {
+        "confidence_score": 0.35,
+        "status": "needs_review",
+        "reason": "no_structured_candidates"
+      },
+      "passed": false,
+      "final_answer": "Answer:\n- XOS: Announced acquisition of ElectraMeccanica [Source 1]\n- BTTC: Definitive transaction agreement with Bridgelink Development [Source 2]"
+    },
+    {
+      "question": "Which companies acquired Sportech?",
+      "category": "target_specific",
+      "task_type": "acquisition_search",
+      "plan": [
+        "search_sec_filings",
+        "extract_event_candidates",
+        "answer_from_evidence"
+      ],
+      "latency_sec": 4.417,
       "retrieval_symbols": [
         "EXE",
         "XOS",
@@ -74,6 +203,7 @@
         "matched_companies": [
           "Patrick Industries"
         ],
+        "matched_entity_count": 2,
         "candidate_count": 4
       },
       "answer_score": {
@@ -83,21 +213,27 @@
         "matched_companies": [
           "Patrick Industries"
         ],
-        "matched_any_count": 2,
+        "matched_entity_count": 2,
         "has_citation": true
+      },
+      "confidence": {
+        "confidence_score": 1.0,
+        "status": "final_answer",
+        "reason": "sufficient_evidence"
       },
       "passed": true,
       "final_answer": "Answer:\n- PATK: Patrick Industries to acquire Sportech [Source 3]"
     },
     {
       "question": "Which companies acquired ElectraMeccanica?",
+      "category": "target_specific",
       "task_type": "acquisition_search",
       "plan": [
         "search_sec_filings",
         "extract_event_candidates",
         "answer_from_evidence"
       ],
-      "latency_sec": 5.92,
+      "latency_sec": 4.583,
       "retrieval_symbols": [
         "EXE",
         "XOS",
@@ -113,6 +249,7 @@
         "matched_companies": [
           "Xos"
         ],
+        "matched_entity_count": 1,
         "candidate_count": 4
       },
       "answer_score": {
@@ -122,11 +259,302 @@
         "matched_companies": [
           "Xos"
         ],
-        "matched_any_count": 2,
+        "matched_entity_count": 1,
         "has_citation": false
       },
+      "confidence": {
+        "confidence_score": 0.8,
+        "status": "needs_review",
+        "reason": "invalid_or_missing_citations"
+      },
       "passed": false,
-      "final_answer": "Answer:\n- Xos, Inc.: Acquired ElectraMeccanica in an all-stock deal [Source Y]\n\nSources:\n- Source Y, symbol: XOS, accession: 0001213900-24-002872, release_dt_utc: 2024-01-11 17:10:36+00:00"
+      "final_answer": "Answer:\n- Xos, Inc.: Acquired ElectraMeccanica in an all-stock deal [Source Y]"
+    },
+    {
+      "question": "Which company acquired Southwestern Energy?",
+      "category": "target_specific",
+      "task_type": "acquisition_search",
+      "plan": [
+        "search_sec_filings",
+        "extract_event_candidates",
+        "answer_from_evidence"
+      ],
+      "latency_sec": 5.566,
+      "retrieval_symbols": [
+        "EXE",
+        "XOS",
+        "PATK",
+        "MAGE",
+        "JPM"
+      ],
+      "retrieval_hit_count": 1,
+      "extraction_score": {
+        "matched_symbols": [
+          "EXE"
+        ],
+        "matched_companies": [
+          "Chesapeake Energy"
+        ],
+        "matched_entity_count": 2,
+        "candidate_count": 4
+      },
+      "answer_score": {
+        "matched_symbols": [],
+        "matched_companies": [
+          "Chesapeake Energy"
+        ],
+        "matched_entity_count": 1,
+        "has_citation": true
+      },
+      "confidence": {
+        "confidence_score": 1.0,
+        "status": "final_answer",
+        "reason": "sufficient_evidence"
+      },
+      "passed": true,
+      "final_answer": "Answer:\n- Magellan Copper & Gold Inc.: To acquire mineral assets and lease from Gold Express Mines in a stock deal [Source 4]\n- Expand Energy Corp: Chesapeake Energy to acquire Southwestern Energy in a major merger deal [Source 1]"
+    },
+    {
+      "question": "Which company entered into a purchase agreement with Gold Express Mines?",
+      "category": "target_specific",
+      "task_type": "acquisition_search",
+      "plan": [
+        "search_sec_filings",
+        "extract_event_candidates",
+        "answer_from_evidence"
+      ],
+      "latency_sec": 5.418,
+      "retrieval_symbols": [
+        "EXE",
+        "XOS",
+        "TCPC",
+        "FRT",
+        "FFNW"
+      ],
+      "retrieval_hit_count": 0,
+      "extraction_score": {
+        "matched_symbols": [],
+        "matched_companies": [],
+        "matched_entity_count": 0,
+        "candidate_count": 5
+      },
+      "answer_score": {
+        "matched_symbols": [],
+        "matched_companies": [],
+        "matched_entity_count": 0,
+        "has_citation": true
+      },
+      "confidence": {
+        "confidence_score": 1.0,
+        "status": "final_answer",
+        "reason": "sufficient_evidence"
+      },
+      "passed": false,
+      "final_answer": "Answer:\n- EXPAND ENERGY Corp: Announced merger with Southwestern Energy [Source 1]\n- Xos, Inc.: Entered into an acquisition agreement with ElectraMeccanica [Source 2]\n- First Financial Northwest, Inc.: Agreed to be acquired by Global Credit Union [Source 5]"
+    },
+    {
+      "question": "Which companies entered merger agreements?",
+      "category": "merger_variant",
+      "task_type": "acquisition_search",
+      "plan": [
+        "search_sec_filings",
+        "extract_event_candidates",
+        "answer_from_evidence"
+      ],
+      "latency_sec": 4.705,
+      "retrieval_symbols": [
+        "EXE",
+        "XOS",
+        "TCPC",
+        "SUP",
+        "BTTC"
+      ],
+      "retrieval_hit_count": 1,
+      "extraction_score": {
+        "matched_symbols": [
+          "EXE"
+        ],
+        "matched_companies": [
+          "Chesapeake Energy"
+        ],
+        "matched_entity_count": 2,
+        "candidate_count": 4
+      },
+      "answer_score": {
+        "matched_symbols": [
+          "EXE"
+        ],
+        "matched_companies": [],
+        "matched_entity_count": 1,
+        "has_citation": true
+      },
+      "confidence": {
+        "confidence_score": 1.0,
+        "status": "final_answer",
+        "reason": "sufficient_evidence"
+      },
+      "passed": true,
+      "final_answer": "Answer:\n- EXE: Announced merger with Southwestern Energy [Source 1]\n- XOS: Entered into an all-stock acquisition agreement with ElectraMeccanica [Source 2]"
+    },
+    {
+      "question": "Which companies announced all-stock deals?",
+      "category": "deal_variant",
+      "task_type": "general_sec_search",
+      "plan": [
+        "search_sec_filings",
+        "answer_from_evidence"
+      ],
+      "latency_sec": 5.333,
+      "retrieval_symbols": [
+        "EXE",
+        "XOS",
+        "SUP",
+        "TESI",
+        "NWSA"
+      ],
+      "retrieval_hit_count": 1,
+      "extraction_score": {
+        "matched_symbols": [],
+        "matched_companies": [],
+        "matched_entity_count": 0,
+        "candidate_count": 0
+      },
+      "answer_score": {
+        "matched_symbols": [
+          "XOS"
+        ],
+        "matched_companies": [
+          "Xos"
+        ],
+        "matched_entity_count": 1,
+        "has_citation": false
+      },
+      "confidence": {
+        "confidence_score": 0.15,
+        "status": "needs_review",
+        "reason": "invalid_or_missing_citations"
+      },
+      "passed": false,
+      "final_answer": "Answer:\n- Xos, Inc.: All-stock deal [Source Y]\n- EXPAND ENERGY Corp: Merger with Southwestern Energy [Source X]\n\nThe sources do not provide information about all-stock deals specifically for the other companies (SUPERIOR INDUSTRIES INTERNATIONAL INC and TESI). NEWS CORP only announced a share repurchase program, which is unrelated to acquisitions or mergers."
+    },
+    {
+      "question": "Which companies amended merger agreements?",
+      "category": "false_positive_stress",
+      "task_type": "acquisition_search",
+      "plan": [
+        "search_sec_filings",
+        "extract_event_candidates",
+        "answer_from_evidence"
+      ],
+      "latency_sec": 4.434,
+      "retrieval_symbols": [
+        "EXE",
+        "XOS",
+        "TCPC",
+        "TESI",
+        "SUP"
+      ],
+      "retrieval_hit_count": 1,
+      "extraction_score": {
+        "matched_symbols": [
+          "TCPC"
+        ],
+        "matched_companies": [
+          "BlackRock TCP Capital"
+        ],
+        "matched_entity_count": 2,
+        "candidate_count": 3
+      },
+      "answer_score": {
+        "matched_symbols": [
+          "TCPC"
+        ],
+        "matched_companies": [],
+        "matched_entity_count": 1,
+        "has_citation": true
+      },
+      "confidence": {
+        "confidence_score": 1.0,
+        "status": "final_answer",
+        "reason": "sufficient_evidence"
+      },
+      "passed": true,
+      "final_answer": "Answer:\n- TCPC: Amended Merger Agreement [Source 3]\n- XOS: Announced Acquisition [Source 2]"
+    },
+    {
+      "question": "Which companies entered cooperation agreements?",
+      "category": "false_positive_stress",
+      "task_type": "general_sec_search",
+      "plan": [
+        "search_sec_filings",
+        "answer_from_evidence"
+      ],
+      "latency_sec": 4.886,
+      "retrieval_symbols": [
+        "XOS",
+        "TCPC",
+        "TESI",
+        "BTTC",
+        "EXE"
+      ],
+      "retrieval_hit_count": 0,
+      "extraction_score": {
+        "matched_symbols": [],
+        "matched_companies": [],
+        "matched_entity_count": 0,
+        "candidate_count": 0
+      },
+      "answer_score": {
+        "matched_symbols": [],
+        "matched_companies": [],
+        "matched_entity_count": 0,
+        "has_citation": true
+      },
+      "confidence": {
+        "confidence_score": 0.35,
+        "status": "needs_review",
+        "reason": "no_structured_candidates"
+      },
+      "passed": false,
+      "final_answer": "Answer:\n- XOS: Announced acquisition through an all-stock deal [Source 1]\n- BTTC: Signed a letter of intent for a business combination [Source 4]"
+    },
+    {
+      "question": "Which filings mentioned stock repurchases?",
+      "category": "hard_negative",
+      "task_type": "acquisition_search",
+      "plan": [
+        "search_sec_filings",
+        "extract_event_candidates",
+        "answer_from_evidence"
+      ],
+      "latency_sec": 5.832,
+      "retrieval_symbols": [
+        "XOS",
+        "FFNW",
+        "FRT",
+        "SCE-PN",
+        "STZ"
+      ],
+      "retrieval_hit_count": 0,
+      "extraction_score": {
+        "matched_symbols": [],
+        "matched_companies": [],
+        "matched_entity_count": 0,
+        "candidate_count": 2
+      },
+      "answer_score": {
+        "matched_symbols": [],
+        "matched_companies": [],
+        "matched_entity_count": 0,
+        "has_citation": true
+      },
+      "confidence": {
+        "confidence_score": 1.0,
+        "status": "final_answer",
+        "reason": "sufficient_evidence"
+      },
+      "passed": true,
+      "final_answer": "Answer:\n- XOS: Acquired ElectraMeccanica in all-stock deal [Source 1]\n- First Financial Northwest, Inc.: (FFNW): Acquired by Global Credit Union [Source 2]"
     }
   ]
 }
