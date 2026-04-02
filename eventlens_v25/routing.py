@@ -14,18 +14,10 @@ def route_after_evaluation(state: EventLensState) -> str:
     - "escalate"
     """
     confidence_eval = state.get("confidence_eval", {})
-    decision = confidence_eval.get("decision", "weak_evidence")
+    decision = confidence_eval.get("decision", "escalate")
 
-    retrieval_attempt = state.get("retrieval_attempt", 0)
-    max_retries = state.get("max_retries", 1)
-
-    # strong enough -> answer
-    if decision in {"confident", "cautious"}:
+    if decision == "answer":
         return "answer"
-
-    # weak evidence but still have retry budget -> retry
-    if decision == "weak_evidence" and retrieval_attempt < max_retries:
+    if decision == "retry":
         return "retry"
-
-    # otherwise escalate
     return "escalate"

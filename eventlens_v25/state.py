@@ -18,6 +18,10 @@ class EventLensState(TypedDict, total=False):
     retrieval_attempt: int
     max_retries: int
 
+    # retry strategy (NEW)
+    retry_strategy: str
+    retry_reason: str
+
     # intermediate results
     hits: List[Dict[str, Any]]
     reranked: List[Dict[str, Any]]
@@ -27,6 +31,14 @@ class EventLensState(TypedDict, total=False):
     # evaluation
     evidence_summary: Dict[str, Any]
     confidence_eval: Dict[str, Any]
+
+    # answer generation (NEW - for next phase)
+    draft_answer: str
+    verification_report: Dict[str, Any]
+
+    # debugging / reasoning memory (NEW)
+    failure_reasons: List[str]
+    tool_history: List[Dict[str, Any]]
 
     # final output
     final_answer: str

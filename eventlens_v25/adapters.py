@@ -290,18 +290,17 @@ def evaluate_confidence(
 
 
 def apply_answer_policy(answer: str, confidence_eval: Dict[str, Any]) -> str:
-    decision = confidence_eval.get("decision", "weak_evidence")
+    decision = confidence_eval.get("decision")
+    llm_confidence = confidence_eval.get("llm_confidence_band")
+    evidence_quality = confidence_eval.get("evidence_quality")
 
-    if decision == "confident":
+    # High confidence → clean answer
+    if decision == "answer" and llm_confidence == "high" and evidence_quality == "strong":
         return answer
 
-    if decision == "cautious":
-        return (
-            "The evidence appears directionally strong, but some uncertainty remains.\n\n"
-            + answer
-        )
+    # Medium → mild caution
+    if decision == "answer":
+        return f"Answer (with some uncertainty):\n{answer}"
 
-    return (
-        "Evidence is limited or mixed, so this answer should be treated cautiously.\n\n"
-        + answer
-    )
+    # fallback
+    return f"Evidence is limited or mixed, so this answer should be treated cautiously.\n\n{answer}"

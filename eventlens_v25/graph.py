@@ -13,6 +13,7 @@ from eventlens_v25.nodes import (
     rerank_node,
     dedupe_node,
     evaluate_evidence_node,
+    select_retry_strategy_node,
     answer_node,
     escalate_node,
 )
@@ -45,6 +46,7 @@ def build_eventlens_graph():
     graph.add_node("rerank", rerank_node)
     graph.add_node("dedupe", dedupe_node)
     graph.add_node("evaluate", evaluate_evidence_node)
+    graph.add_node("select_retry_strategy", select_retry_strategy_node)
     graph.add_node("increment_retry", increment_retry_node)
     graph.add_node("answer", answer_node)
     graph.add_node("escalate", escalate_node)
@@ -62,13 +64,14 @@ def build_eventlens_graph():
         "evaluate",
         route_after_evaluation,
         {
-            "retry": "increment_retry",
+            "retry": "select_retry_strategy",
             "answer": "answer",
             "escalate": "escalate",
         },
     )
 
-    # Retry loops back to rewrite
+    # Retry loop
+    graph.add_edge("select_retry_strategy", "increment_retry")
     graph.add_edge("increment_retry", "rewrite_query")
 
     # Terminal nodes
