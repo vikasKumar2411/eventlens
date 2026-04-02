@@ -36,6 +36,18 @@ def main():
     print("\n=== ANSWER ===")
     print(result["final_answer"])
 
+    print("\n=== MEMORY ===")
+    print("Saved run path:", result["saved_run_path"])
+
+    if result.get("run_summary"):
+        print("\n--- Retry History ---")
+        for r in result["run_summary"].get("retry_history", []):
+            print(r)
+
+        print("\n--- Rewrite History ---")
+        for r in result["run_summary"].get("rewrite_history", []):
+            print(r)
+
     print("\n=== TRACE ===")
     for step in result["trace"]:
         print(step)

@@ -22,6 +22,24 @@ from eventlens_v25.adapters import (
     evaluate_confidence,
     apply_answer_policy,
 )
+from eventlens_v25.memory import load_all_runs, get_memory_hint_for_intent
+
+def _clean_rewritten_query(text: str, fallback: str) -> str:
+    if not text:
+        return fallback
+
+    cleaned = text.strip().replace("\n", " ")
+    cleaned = re.sub(r"\[Source[^\]]*\]", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\bAnswer:\b", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"[-•*]", " ", cleaned)
+    cleaned = re.sub(r"[\"']", "", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" ,.:;")
+
+    tokens = cleaned.split()
+    if len(tokens) > 20:
+        cleaned = " ".join(tokens[:20])
+
+    return cleaned if cleaned else fallback
 
 def _extract_json_block(text: str) -> Dict[str, Any]:
     """
@@ -269,14 +287,96 @@ def planner_node(state: EventLensState) -> Dict[str, Any]:
     }
 
 
+def _llm_rewrite_query(
+    *,
+    query: str,
+    plan: str,
+    retrieval_attempt: int,
+    retry_strategy: str,
+    retry_reason: str,
+    failure_reasons: list[str],
+    heuristic_fallback: str,
+) -> Dict[str, Any]:
+    if retrieval_attempt == 0:
+        objective = (
+            "Rewrite the user query into a short SEC 8-K retrieval query optimized "
+            "for finding filings about the requested event type."
+        )
+    else:
+        objective = (
+            f"Rewrite the user query for retrieval retry #{retrieval_attempt}. "
+            f"The retry strategy is '{retry_strategy}'. "
+            "Adjust the search phrasing to improve retrieval quality."
+        )
+
+    prompt = f"""
+You are rewriting a search query for an SEC 8-K event retrieval system.
+
+User query:
+{query}
+
+Plan:
+{plan}
+
+Retrieval attempt:
+{retrieval_attempt}
+
+Retry strategy:
+{retry_strategy or "none"}
+
+Retry reason:
+{retry_reason or "none"}
+
+Previous failure reasons:
+{json.dumps(failure_reasons)}
+
+Heuristic fallback query:
+{heuristic_fallback}
+
+Objective:
+{objective}
+
+Instructions:
+- Return a compact keyword-style retrieval query, not a sentence.
+- Focus on the likely SEC filing language for the target event.
+- Preserve the original meaning of the user query.
+- For acquisition/merger style queries, prefer terms like:
+  acquisition, merger, definitive agreement, business combination, will acquire, transaction
+- If the retry strategy is:
+  - broaden_search: widen phrasing and synonyms
+  - narrow_search: focus tightly on direct event terms
+  - event_keyword_bias: emphasize event/transaction language
+  - diversify_results: use alternative but relevant phrasing
+- Do not explain anything.
+- Output only the rewritten query.
+
+Rewritten query:
+""".strip()
+
+    raw = tool_answer_from_context(
+        question=prompt,
+        context="",
+    )
+
+    rewritten_query = _clean_rewritten_query(raw, heuristic_fallback)
+
+    return {
+        "rewritten_query": rewritten_query,
+        "raw": raw,
+    }
+
+
 def rewrite_query_node(state: EventLensState) -> Dict[str, Any]:
     query = state["query"]
     plan = state["plan"]
     retrieval_attempt = state.get("retrieval_attempt", 0)
     retry_strategy = state.get("retry_strategy", "")
+    retry_reason = state.get("retry_reason", "")
+    failure_reasons = state.get("failure_reasons", [])
 
+    # Heuristic fallback stays in place
     if retrieval_attempt == 0:
-        rewritten_query = rewrite_query_for_plan(query, plan)
+        heuristic_query = rewrite_query_for_plan(query, plan)
     else:
         base_retry_query = rewrite_query_for_retry(
             query=query,
@@ -285,20 +385,35 @@ def rewrite_query_node(state: EventLensState) -> Dict[str, Any]:
         )
 
         if retry_strategy == "broaden_search":
-            rewritten_query = f"{base_retry_query} disclosure announcement transaction"
+            heuristic_query = f"{base_retry_query} disclosure announcement transaction"
         elif retry_strategy == "narrow_search":
-            rewritten_query = f"{query} acquisition merger announced"
+            heuristic_query = f"{query} acquisition merger announced"
         elif retry_strategy == "event_keyword_bias":
-            rewritten_query = f"{query} acquisition acquisition agreement merger transaction"
+            heuristic_query = f"{query} acquisition acquisition agreement merger transaction"
         elif retry_strategy == "diversify_results":
-            rewritten_query = f"{query} corporate action strategic transaction filing"
+            heuristic_query = f"{query} corporate action strategic transaction filing"
         else:
-            rewritten_query = base_retry_query
+            heuristic_query = base_retry_query
+
+    # LLM-guided rewrite
+    llm_result = _llm_rewrite_query(
+        query=query,
+        plan=plan,
+        retrieval_attempt=retrieval_attempt,
+        retry_strategy=retry_strategy,
+        retry_reason=retry_reason,
+        failure_reasons=failure_reasons,
+        heuristic_fallback=heuristic_query,
+    )
+
+    rewritten_query = llm_result["rewritten_query"]
 
     trace_entry = {
         "node": "rewrite_query_node",
         "retrieval_attempt": retrieval_attempt,
         "retry_strategy": retry_strategy,
+        "retry_reason": retry_reason,
+        "heuristic_query": heuristic_query,
         "rewritten_query": rewritten_query,
     }
 
@@ -306,7 +421,6 @@ def rewrite_query_node(state: EventLensState) -> Dict[str, Any]:
         "rewritten_query": rewritten_query,
         "trace": state.get("trace", []) + [trace_entry],
     }
-
 
 def retrieve_node(state: EventLensState) -> Dict[str, Any]:
     rewritten_query = state["rewritten_query"]
@@ -498,8 +612,21 @@ def escalate_node(state: EventLensState) -> Dict[str, Any]:
     }
 
 
+def _load_memory_hint_for_state(state: EventLensState) -> Dict[str, Any]:
+    intent = state.get("intent")
+    if not intent:
+        return {}
+
+    try:
+        runs = load_all_runs()
+        return get_memory_hint_for_intent(runs, intent=intent)
+    except Exception:
+        return {}
+
+
 def select_retry_strategy_node(state: EventLensState) -> Dict[str, Any]:
     query = state["query"]
+    intent = state.get("intent", "")
     evidence_summary = state.get("evidence_summary", {})
     confidence_eval = state.get("confidence_eval", {})
     retrieval_attempt = state.get("retrieval_attempt", 0)
@@ -521,20 +648,76 @@ def select_retry_strategy_node(state: EventLensState) -> Dict[str, Any]:
         max_retries=max_retries,
     )
 
-    # Merge policy:
-    # Prefer LLM choice when it exists, but keep heuristic as fallback/trace.
-    retry_strategy = llm_choice.get("retry_strategy") or heuristic_choice["retry_strategy"]
-    retry_reason = llm_choice.get("retry_reason") or heuristic_choice["retry_reason"]
+    # Load memory hint for this intent
+    memory_hint = _load_memory_hint_for_state(state)
+    memory_best_strategy = memory_hint.get("best_strategy")
+    memory_num_runs_for_intent = memory_hint.get("num_runs_for_intent", 0)
+    memory_strategy_stats = memory_hint.get("strategy_stats", {})
+    memory_stagnation_by_strategy = (
+        memory_hint.get("stagnation_stats", {}).get("by_strategy", {})
+    )
+
+    heuristic_strategy = heuristic_choice["retry_strategy"]
+    heuristic_reason = heuristic_choice["retry_reason"]
+
+    llm_strategy = llm_choice.get("retry_strategy")
+    llm_reason = llm_choice.get("retry_reason")
+
+    # Baseline merge: prefer LLM, fallback to heuristic
+    final_strategy = llm_strategy or heuristic_strategy
+    final_reason = llm_reason or heuristic_reason
+    decision_source = "llm_or_heuristic"
+
+    chosen_stats = memory_strategy_stats.get(final_strategy, {})
+    chosen_runs = chosen_stats.get("runs", 0)
+    chosen_stagnation = memory_stagnation_by_strategy.get(final_strategy, {}).get(
+        "stagnation_rate"
+    )
+
+    if memory_best_strategy:
+        best_stats = memory_strategy_stats.get(memory_best_strategy, {})
+        best_runs = best_stats.get("runs", 0)
+        best_stagnation = memory_stagnation_by_strategy.get(
+            memory_best_strategy, {}
+        ).get("stagnation_rate", 0.0)
+
+        # Case 1:
+        # No usable LLM strategy → let memory guide if enough support exists
+        if not llm_strategy and best_runs >= 2:
+            final_strategy = memory_best_strategy
+            final_reason = f"memory_prior:{memory_best_strategy}"
+            decision_source = "memory_fallback"
+
+        # Case 2:
+        # Chosen strategy has enough history and is highly stagnant,
+        # but memory has a different better-supported option
+        elif (
+            final_strategy != memory_best_strategy
+            and chosen_runs >= 2
+            and chosen_stagnation is not None
+            and chosen_stagnation >= 0.8
+            and best_runs >= 2
+            and best_stagnation <= 0.5
+        ):
+            final_strategy = memory_best_strategy
+            final_reason = f"memory_override_due_to_stagnation:{memory_best_strategy}"
+            decision_source = "memory_override"
 
     trace_entry = {
         "node": "select_retry_strategy_node",
+        "intent": intent,
         "retrieval_attempt": retrieval_attempt,
-        "heuristic_retry_strategy": heuristic_choice["retry_strategy"],
-        "heuristic_retry_reason": heuristic_choice["retry_reason"],
-        "llm_retry_strategy": llm_choice.get("retry_strategy"),
-        "llm_retry_reason": llm_choice.get("retry_reason"),
-        "final_retry_strategy": retry_strategy,
-        "final_retry_reason": retry_reason,
+        "heuristic_retry_strategy": heuristic_strategy,
+        "heuristic_retry_reason": heuristic_reason,
+        "llm_retry_strategy": llm_strategy,
+        "llm_retry_reason": llm_reason,
+        "memory_best_strategy": memory_best_strategy,
+        "memory_num_runs_for_intent": memory_num_runs_for_intent,
+        "memory_chosen_strategy_runs": chosen_runs,
+        "memory_chosen_strategy_stagnation": chosen_stagnation,
+        "decision_source": decision_source,
+        "final_retry_strategy": final_strategy,
+        "final_retry_reason": final_reason,
         "count": evidence_summary.get("count", 0),
         "top_score": evidence_summary.get("top_score", 0.0),
         "score_spread": evidence_summary.get("score_spread", 0.0),
@@ -547,16 +730,18 @@ def select_retry_strategy_node(state: EventLensState) -> Dict[str, Any]:
     tool_history = state.get("tool_history", [])
 
     return {
-        "retry_strategy": retry_strategy,
-        "retry_reason": retry_reason,
-        "failure_reasons": failure_reasons + [retry_reason],
+        "retry_strategy": final_strategy,
+        "retry_reason": final_reason,
+        "failure_reasons": failure_reasons + [final_reason],
         "tool_history": tool_history + [
             {
                 "tool": "select_retry_strategy",
-                "retry_strategy": retry_strategy,
-                "retry_reason": retry_reason,
-                "heuristic_retry_strategy": heuristic_choice["retry_strategy"],
-                "llm_retry_strategy": llm_choice.get("retry_strategy"),
+                "retry_strategy": final_strategy,
+                "retry_reason": final_reason,
+                "heuristic_retry_strategy": heuristic_strategy,
+                "llm_retry_strategy": llm_strategy,
+                "memory_best_strategy": memory_best_strategy,
+                "decision_source": decision_source,
             }
         ],
         "trace": state.get("trace", []) + [trace_entry],
